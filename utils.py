@@ -1,73 +1,32 @@
-# -*- coding: utf-8 -*-
+import time
+import json
+def get_date():
+    return time.strftime("%Y-%m-%d", time.localtime())
 
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+def read_json(file_path):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
-class BrowserAutomation:
-    def __init__(self):
-        options = webdriver.FirefoxOptions()
-        options.add_argument("--no-sandbox")  # 禁用沙盒模式
-        self.driver = webdriver.Firefox(options=options)  # 替换为GeckoDriver路径
+def write_json(file_path, data):
+    with open(file_path, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
 
-    def open_browser(self, url):
-        self.driver.get(url)
+def record_message_info(group_name, message_info):
+    date_str = get_date()
+    message_record_file_path = f'./file/message_info/{date_str}.json'
+    write_json(message_record_file_path, message_info)
 
-    def login_gv(self, email, password):
-        self.driver.get('https://accounts.google.com/')
-        email_input = self.driver.find_element(By.ID, 'identifierId')
-        email_input.send_keys(email)
-        self.driver.find_element(By.ID, 'identifierNext').click()
-        print("等待密码输入框出现...")
-        WebDriverWait(self.driver, 30).until(EC.presence_of_element_located((By.NAME, 'Passwd')))
-        password_input = self.driver.find_element(By.NAME, 'Passwd')
-        password_input.send_keys(password)
-        self.driver.find_element(By.ID, 'passwordNext').click()
-        WebDriverWait(self.driver, 30).until(EC.title_contains('Google Account'))
+def read_message_record(group_name):
+    date_str = get_date()
+    message_record_file_path = f'./file/message_info/{date_str}.json'
+    return read_json(message_record_file_path)
 
-    def send_message(self, phone, message):
-        self.driver.get('https://voice.google.com/')
-        print("等待消息按钮出现...")
-        message_button = WebDriverWait(self.driver, 30).until(
-            EC.presence_of_element_located((By.XPATH, '//*[contains(text(), "Messages")]'))
-        )
-        message_button.click()
-        print("等待新消息按钮出现...")
-        new_message_button = WebDriverWait(self.driver, 30).until(
-            EC.presence_of_element_located((By.XPATH, '//*[@aria-label="Send new message"]'))
-        )
-        new_message_button.click()
-        print("等待号码输入框出现...")
-        phone_input = WebDriverWait(self.driver, 30).until(
-            EC.presence_of_element_located((By.XPATH, '//*[@aria-label="Enter name or number"]'))
-        )
-        phone_input.send_keys(phone)
-        phone_input.send_keys(Keys.RETURN)
-        print("等待消息输入框出现...")
-        message_input = WebDriverWait(self.driver, 30).until(
-            EC.presence_of_element_located((By.XPATH, '//*[@aria-label="Send a message"]'))
-        )
-        message_input.send_keys(message)
-        send_button = self.driver.find_element(By.XPATH, '//*[@aria-label="Send message"]')
-        send_button.click()
-
-    def close_browser(self):
-        self.driver.quit()
-
-
-
-# async function getPhoneNum() {
-#     const resp = await requestPhoneNum();
-#     console.log('resp', resp);
-#     if (resp && resp.length === 3) {
-#         const phoneNum = resp[2];
-#         const id = resp[1];
-#         const phoneCode = await getCode(id);
-#         if (phoneCode) {
-#             // 处理验证码逻辑
-#         }
-#     }
-# }
-
+def update_local_info(cur_group_window_info_list, pre_window_info_list, cur_group_window_list_file, pre_window_list_file):
+    for account_info in cur_group_window_info_list:
+        element_index = next((index for (index, d) in enumerate(pre_window_info_list) if d["id"] == account_info["id"]), None)
+        if element_index is not None:
+            pre_window_info_list[element_index] = account_info
+        else:
+            pre_window_info_list.append(account_info)
+    write_json(cur_group_window_list_file, cur_group_window_info_list)
+    write_json(pre_window_list_file, pre_window_info_list)
